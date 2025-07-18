@@ -57,7 +57,7 @@ EXAMPLES:
     $0 --homepagepromo        Use homepage promo settings (450p, CRF 28)
 
 OUTPUT:
-    Creates '{input-dir-name}-converted/' with subfolders:
+    Creates '{input-dir}/converted/' with subfolders:
     '{date}-{filetype}-{size}p-{quality}/'
 EOF
 }
@@ -102,11 +102,14 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Validate input directory
+# Validate and sanitize input directory
 if [[ ! -d "$INPUT_DIR" ]]; then
     echo "Error: Input directory '$INPUT_DIR' does not exist"
     exit 1
 fi
+
+# Remove trailing slash if present
+INPUT_DIR="${INPUT_DIR%/}"
 
 # Validate size
 if ! [[ "$SIZE" =~ ^[0-9]+$ ]]; then
@@ -133,7 +136,7 @@ fi
 
 # Create output directory structure
 INPUT_BASENAME=$(basename "$INPUT_DIR")
-OUTPUT_BASE="${INPUT_DIR}-converted"
+OUTPUT_BASE="$INPUT_DIR/converted"
 DATE=$(date +%Y-%m-%d)
 H265_OUTPUT_DIR="$OUTPUT_BASE/$DATE-h265-${SIZE}p-$QUALITY_LABEL"
 VP9_OUTPUT_DIR="$OUTPUT_BASE/$DATE-vp9-${SIZE}p-$QUALITY_LABEL"
