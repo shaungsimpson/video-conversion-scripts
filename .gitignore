@@ -1,0 +1,29 @@
+legacy/*
+.DS_Store
+.idea/*
+**/*.mp4
+**/*.webm
+**/*.avi
+**/*.mov
+**/*.mkv
+**/*.flv
+**/*.wmv
+**/*.m4v
+
+# Audio files
+**/*.mp3
+**/*.wav
+**/*.aac
+**/*.flac
+**/*.ogg
+
+# Temp/cache files
+*.tmp
+*.temp
+.cache/
+temp/
+
+# Logs
+*.log
+logs/
+
