@@ -6,6 +6,7 @@ SIZE="450"
 QUALITY="medium"
 VERBOSE=false
 DRY_RUN=false
+NO_AUDIO=false
 
 # Quality presets - function to get CRF values
 get_h265_crf() {
@@ -24,6 +25,12 @@ get_vp9_crf() {
         "high") echo "20" ;;
         *) echo "" ;;
     esac
+}
+
+# Check if video has audio streams
+has_audio() {
+    local file="$1"
+    ffprobe -v quiet -select_streams a:0 -show_entries stream=codec_type -of csv=p=0 "$file" 2>/dev/null | grep -q "audio"
 }
 
 show_help() {
@@ -46,6 +53,7 @@ OPTIONS:
                               VP9: 20-40 (lower = better quality)
     -v, --verbose             Show detailed output
     --dry-run                 Preview operations without executing
+    --no-audio                Force disable audio encoding (add -an flag)
     --homepagepromo           Shorthand for homepage promo settings (450p, CRF 28)
     -h, --help                Show this help message
 
@@ -54,6 +62,7 @@ EXAMPLES:
     $0 -d /path/to/videos     Convert specific directory
     $0 -s 720 -q high         Convert to 720p with high quality
     $0 -q 25                  Convert with custom CRF value
+    $0 --no-audio             Convert without audio (smaller files for silent videos)
     $0 --homepagepromo        Use homepage promo settings (450p, CRF 28)
 
 OUTPUT:
@@ -83,6 +92,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --dry-run)
             DRY_RUN=true
+            shift
+            ;;
+        --no-audio)
+            NO_AUDIO=true
             shift
             ;;
         --homepagepromo)
@@ -167,9 +180,22 @@ for file in "$INPUT_DIR"/*.mp4; do
     
     echo "Processing ($count): $filename"
     
+    # Check for audio and set audio flag
+    audio_flag=""
+    if [[ "$NO_AUDIO" == true ]] || ! has_audio "$file"; then
+        audio_flag="-an"
+        if [[ "$VERBOSE" == true ]]; then
+            if [[ "$NO_AUDIO" == true ]]; then
+                echo "  Audio disabled by --no-audio flag"
+            else
+                echo "  No audio detected, adding -an flag"
+            fi
+        fi
+    fi
+    
     # H.265 conversion
     h265_output="$OUTPUT_DIR/${filename}_${SIZE}p_h265.mp4"
-    h265_cmd="ffmpeg -i \"$file\" -vf \"scale=-2:$SIZE\" -c:v libx265 -preset veryslow -crf $H265_CRF -tag:v hvc1 -pix_fmt yuv420p \"$h265_output\""
+    h265_cmd="ffmpeg -i \"$file\" -vf \"scale=-2:$SIZE\" -c:v libx265 -preset veryslow -crf $H265_CRF -tag:v hvc1 -pix_fmt yuv420p $audio_flag \"$h265_output\""
     
     if [[ "$VERBOSE" == true ]]; then
         echo "  H.265: $h265_cmd"
@@ -181,7 +207,7 @@ for file in "$INPUT_DIR"/*.mp4; do
     
     # VP9 conversion
     vp9_output="$OUTPUT_DIR/${filename}_${SIZE}p_vp9.webm"
-    vp9_cmd="ffmpeg -i \"$file\" -vf \"scale=-2:$SIZE\" -c:v libvpx-vp9 -pix_fmt yuv420p -crf $VP9_CRF -b:v 0 \"$vp9_output\""
+    vp9_cmd="ffmpeg -i \"$file\" -vf \"scale=-2:$SIZE\" -c:v libvpx-vp9 -pix_fmt yuv420p -crf $VP9_CRF -b:v 0 $audio_flag \"$vp9_output\""
     
     if [[ "$VERBOSE" == true ]]; then
         echo "  VP9: $vp9_cmd"
