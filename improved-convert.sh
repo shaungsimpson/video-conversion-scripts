@@ -58,7 +58,7 @@ EXAMPLES:
 
 OUTPUT:
     Creates '{input-dir}/converted/' with subfolders:
-    '{date}-{filetype}-{size}p-{quality}/'
+    '{datetime}-{size}p-{quality}/'
 EOF
 }
 
@@ -137,24 +137,21 @@ fi
 # Create output directory structure
 INPUT_BASENAME=$(basename "$INPUT_DIR")
 OUTPUT_BASE="$INPUT_DIR/converted"
-DATE=$(date +%Y-%m-%d)
-H265_OUTPUT_DIR="$OUTPUT_BASE/$DATE-h265-${SIZE}p-$QUALITY_LABEL"
-VP9_OUTPUT_DIR="$OUTPUT_BASE/$DATE-vp9-${SIZE}p-$QUALITY_LABEL"
+DATETIME=$(date +%Y-%m-%d-%H%M%S)
+OUTPUT_DIR="$OUTPUT_BASE/$DATETIME-${SIZE}p-$QUALITY_LABEL"
 
 if [[ "$VERBOSE" == true ]]; then
     echo "Configuration:"
     echo "  Input directory: $INPUT_DIR"
     echo "  Size: ${SIZE}p"
     echo "  Quality: $QUALITY_LABEL (H.265 CRF: $H265_CRF, VP9 CRF: $VP9_CRF)"
-    echo "  H.265 output: $H265_OUTPUT_DIR"
-    echo "  VP9 output: $VP9_OUTPUT_DIR"
+    echo "  Output directory: $OUTPUT_DIR"
     echo ""
 fi
 
-# Create output directories
+# Create output directory
 if [[ "$DRY_RUN" == false ]]; then
-    mkdir -p "$H265_OUTPUT_DIR"
-    mkdir -p "$VP9_OUTPUT_DIR"
+    mkdir -p "$OUTPUT_DIR"
 fi
 
 # Process videos
@@ -171,7 +168,7 @@ for file in "$INPUT_DIR"/*.mp4; do
     echo "Processing ($count): $filename"
     
     # H.265 conversion
-    h265_output="$H265_OUTPUT_DIR/${filename}_${SIZE}p_h265.mp4"
+    h265_output="$OUTPUT_DIR/${filename}_${SIZE}p_h265.mp4"
     h265_cmd="ffmpeg -i \"$file\" -vf \"scale=-2:$SIZE\" -c:v libx265 -preset veryslow -crf $H265_CRF -tag:v hvc1 -pix_fmt yuv420p \"$h265_output\""
     
     if [[ "$VERBOSE" == true ]]; then
@@ -183,7 +180,7 @@ for file in "$INPUT_DIR"/*.mp4; do
     fi
     
     # VP9 conversion
-    vp9_output="$VP9_OUTPUT_DIR/${filename}_${SIZE}p_vp9.webm"
+    vp9_output="$OUTPUT_DIR/${filename}_${SIZE}p_vp9.webm"
     vp9_cmd="ffmpeg -i \"$file\" -vf \"scale=-2:$SIZE\" -c:v libvpx-vp9 -pix_fmt yuv420p -crf $VP9_CRF -b:v 0 \"$vp9_output\""
     
     if [[ "$VERBOSE" == true ]]; then
@@ -195,6 +192,5 @@ for file in "$INPUT_DIR"/*.mp4; do
     fi
 done
 
-echo "Conversion complete! Output directories:"
-echo "  H.265: $H265_OUTPUT_DIR"
-echo "  VP9: $VP9_OUTPUT_DIR"
+echo "Conversion complete! Output directory:"
+echo "  $OUTPUT_DIR"
